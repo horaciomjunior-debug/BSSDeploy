@@ -1,7 +1,4 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
+# Pipeline Docker para Build e Push no Azure DevOps
 
 trigger:
 - main
@@ -9,11 +6,47 @@ trigger:
 pool:
   vmImage: ubuntu-latest
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+# Variáveis (substitua pelos seus valores reais!)
+variables:
+  # O nome que você deu na Service Connection no Azure DevOps
+  dockerRegistryServiceConnection: 'ACR-MinhaApp' 
+  # O nome do repositório da imagem no ACR
+  imageRepository: 'bss-app' 
+  # O caminho para o seu Dockerfile
+  dockerfilePath: '$(Build.SourcesDirectory)/BSS Devops/bss/Dockerfile'
+  # A tag da imagem será o ID da build
+  tag: '$(Build.BuildId)'
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+steps:
+# 1. Autenticação no ACR
+- task: Docker@2
+  displayName: 'Login no Azure Container Registry'
+  inputs:
+    command: login
+    # Usa a Conexão de Serviço para obter as credenciais
+    containerRegistry: $(dockerRegistryServiceConnection)
+
+# 2. Construir e Taggear a Imagem
+- task: Docker@2
+  displayName: 'Build e Tag da Imagem'
+  inputs:
+    command: build
+    # O caminho do Dockerfile
+    dockerfile: $(dockerfilePath)
+    # Define o nome do repositório e a Conexão para pré-fixar a tag
+    repository: $(imageRepository)
+    containerRegistry: $(dockerRegistryServiceConnection)
+    tags: |
+      $(tag)
+      latest
+
+# 3. Enviar (Push) a Imagem para o ACR
+- task: Docker@2
+  displayName: 'Push da Imagem para o ACR'
+  inputs:
+    command: push
+    repository: $(imageRepository)
+    containerRegistry: $(dockerRegistryServiceConnection)
+    tags: |
+      $(tag)
+      latest
