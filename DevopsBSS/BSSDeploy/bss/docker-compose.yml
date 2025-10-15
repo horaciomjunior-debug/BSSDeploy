@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  oracle-db:
+    image: gvenzl/oracle-xe:21-slim
+    container_name: oracle-db
+    ports:
+      - "1521:1521"
+      - "8080:8080"
+    environment:
+      ORACLE_PASSWORD: secret
+      APP_USER: bssuser
+      APP_USER_PASSWORD: bsspass
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+
+  bss-api:
+    build: .
+    container_name: bss-api
+    ports:
+      - "8081:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:oracle:thin:@oracle-db:1521/XEPDB1
+      SPRING_DATASOURCE_USERNAME: bssuser
+      SPRING_DATASOURCE_PASSWORD: bsspass
+    depends_on:
+      - oracle-db
+
+volumes:
+  oracle-data:
